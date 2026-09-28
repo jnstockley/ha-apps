@@ -1,0 +1,33 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "enabledManagers": [
+    "dockerfile"
+  ],
+  "packageRules": [
+    {
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchPackageNames": [
+        "adguard/dnsproxy"
+      ],
+      "groupName": "DNSProxy",
+      "labels": [
+        "dependencies",
+        "doh"
+      ],
+      "postUpgradeTasks": {
+        "commands": [
+          "./scripts/bump-doh-version.sh"
+        ],
+        "fileFilters": [
+          "doh/config.yaml"
+        ],
+        "executionMode": "update"
+      }
+    }
+  ]
+}

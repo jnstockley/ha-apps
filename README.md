@@ -40,6 +40,18 @@ mapping and configuration details.
 
 The app supports `amd64` and `aarch64`.
 
+## Release automation
+
+Renovate monitors the DNSProxy image tag. Its DNSProxy upgrade PRs also
+run [`scripts/bump-doh-version.sh`](scripts/bump-doh-version.sh), which
+increments the app manifest patch version. After the PR is merged, the
+builder workflow publishes the new image and creates the corresponding
+GitHub release.
+
+The Renovate runner must permit `./scripts/bump-doh-version.sh` as a
+`postUpgradeTask`; self-hosted Renovate requires this command in its
+global `allowedCommands` configuration.
+
 ## License
 
 Apache License 2.0 -- see [`LICENSE`](LICENSE).
