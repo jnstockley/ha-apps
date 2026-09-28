@@ -94,8 +94,12 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    concurrency:
+      group: app-releases-${{ github.repository }}
+      cancel-in-progress: false
     strategy:
       fail-fast: false
+      max-parallel: 1
       matrix:
         app: ${{ fromJSON(needs.init.outputs.changed_apps) }}
     steps:
@@ -122,19 +126,48 @@ jobs:
               jq -r --arg prefix "${APP}-v" \
                 'map(select(.tagName | startswith($prefix))) | sort_by(.publishedAt) | last | .tagName // empty')
 
+            changes_file="$(mktemp)"
             notes_file="$(mktemp)"
-            trap 'rm -f "${notes_file}"' EXIT
+            changelog_file="${APP}/CHANGELOG.md"
+            trap 'rm -f "${changes_file}" "${notes_file}"' EXIT
+            if [[ -n "${previous_tag}" ]]; then
+              git log \
+                --format="- %s (\`%h\`)" \
+                --invert-grep \
+                --grep='^chore: update release changelog$' \
+                "${previous_tag}..${GITHUB_SHA}" > "${changes_file}"
+            else
+              echo "- Initial release." > "${changes_file}"
+            fi
+
             {
               echo "## Changes"
               echo
               if [[ -n "${previous_tag}" ]]; then
                 echo "Changes since \`${previous_tag}\`:"
                 echo
-                git log --format="- %s (\`%h\`)" "${previous_tag}..${GITHUB_SHA}"
-              else
-                echo "- Initial release."
               fi
+              cat "${changes_file}"
             } > "${notes_file}"
+
+            changelog_temp="$(mktemp "${changelog_file}.XXXXXX")"
+            {
+              sed -n '1,5p' "${changelog_file}"
+              echo "## [${version}] - $(date -u +%F)"
+              echo
+              echo "### Changed"
+              echo
+              cat "${changes_file}"
+              echo
+              sed -n '6,$p' "${changelog_file}"
+            } > "${changelog_temp}"
+            mv "${changelog_temp}" "${changelog_file}"
+
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "${changelog_file}"
+            git commit -m "chore: update release changelog"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
 
             gh release create "${tag}" \
               --repo "${GITHUB_REPOSITORY}" \
