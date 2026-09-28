@@ -84,3 +84,38 @@ jobs:
       app: ${{ matrix.app }}
       publish: ${{ github.event_name == 'push' }}
     secrets: inherit
+
+  release:
+    name: Release ${{ matrix.app }}
+    needs: [init, build-app]
+    if: >-
+      github.event_name == 'push' &&
+      needs.init.outputs.changed == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        app: ${{ fromJSON(needs.init.outputs.changed_apps) }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Create release if the version is new
+        env:
+          APP: ${{ matrix.app }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          version=$(grep -m1 '^version:' "${APP}/config.yaml" | sed -E 's/^version:[[:space:]]*"?([^"[:space:]]+)"?.*/\1/')
+          tag="${APP}-v${version}"
+
+          if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
+            echo "Release ${tag} already exists, skipping."
+          else
+            gh release create "${tag}" \
+              --repo "${GITHUB_REPOSITORY}" \
+              --title "${APP} ${version}" \
+              --notes "Automated release for \`${APP}\` ${version}. See ${APP}/CHANGELOG.md for details." \
+              --target "${GITHUB_SHA}"
+          fi
