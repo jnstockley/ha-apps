@@ -101,6 +101,8 @@ jobs:
     steps:
       - name: Check out the repository
         uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - name: Create release if the version is new
         env:
@@ -113,9 +115,30 @@ jobs:
           if gh release view "${tag}" --repo "${GITHUB_REPOSITORY}" >/dev/null 2>&1; then
             echo "Release ${tag} already exists, skipping."
           else
+            previous_tag=$(gh release list \
+              --repo "${GITHUB_REPOSITORY}" \
+              --limit 100 \
+              --json tagName,publishedAt | \
+              jq -r --arg prefix "${APP}-v" \
+                'map(select(.tagName | startswith($prefix))) | sort_by(.publishedAt) | last | .tagName // empty')
+
+            notes_file="$(mktemp)"
+            trap 'rm -f "${notes_file}"' EXIT
+            {
+              echo "## Changes"
+              echo
+              if [[ -n "${previous_tag}" ]]; then
+                echo "Changes since \`${previous_tag}\`:"
+                echo
+                git log --format="- %s (\`%h\`)" "${previous_tag}..${GITHUB_SHA}"
+              else
+                echo "- Initial release."
+              fi
+            } > "${notes_file}"
+
             gh release create "${tag}" \
               --repo "${GITHUB_REPOSITORY}" \
               --title "${APP} ${version}" \
-              --notes "Automated release for \`${APP}\` ${version}. See ${APP}/CHANGELOG.md for details." \
+              --notes-file "${notes_file}" \
               --target "${GITHUB_SHA}"
           fi
