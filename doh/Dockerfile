@@ -1,4 +1,4 @@
-FROM golang:1.27-alpine AS launcher
+FROM golang:1.25-alpine AS launcher
 
 WORKDIR /src
 COPY entrypoint.go .
