@@ -11,8 +11,11 @@
       "matchManagers": [
         "dockerfile"
       ],
+      "matchFileNames": [
+        "doh/Dockerfile"
+      ],
       "matchPackageNames": [
-        "adguard/dnsproxy"
+        "/^(?:docker\\.io\\/)?adguard\\/dnsproxy$/"
       ],
       "groupName": "DNSProxy",
       "labels": [
@@ -26,7 +29,7 @@
         "fileFilters": [
           "doh/config.yaml"
         ],
-        "executionMode": "update"
+        "executionMode": "branch"
       }
     }
   ]
