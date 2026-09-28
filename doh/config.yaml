@@ -1,0 +1,40 @@
+name: "DNS over HTTPS"
+version: "3.0.0"
+slug: "doh"
+description: "A local DNS server that forwards queries to configurable DNS-over-HTTPS upstreams."
+url: "https://github.com/jnstockley/ha-apps"
+
+arch:
+  - amd64
+  - aarch64
+
+init: false
+startup: services
+boot: auto
+
+# DNSProxy listens on 5053 in the container. The default host mapping is
+# port 53, so clients can use the Home Assistant host as a normal DNS server.
+ports:
+  5053/tcp: 53
+  5053/udp: 53
+ports_description:
+  5053/tcp: "DNS over TCP"
+  5053/udp: "DNS over UDP"
+watchdog: "tcp://[HOST]:[PORT:5053]"
+
+options:
+  upstreams: "https://dns.google/dns-query,https://dns.quad9.net/dns-query"
+  bootstrap: "8.8.8.8:53,9.9.9.9:53"
+  upstream_mode: "load_balance"
+  timeout: "10s"
+  cache: false
+  cache_size: 65536
+  verbose: false
+schema:
+  upstreams: "str(1,2048)"
+  bootstrap: "str(1,2048)"
+  upstream_mode: "list(load_balance|parallel|fastest_addr)"
+  timeout: "str(1,32)"
+  cache: "bool"
+  cache_size: "int(0,104857600)"
+  verbose: "bool"

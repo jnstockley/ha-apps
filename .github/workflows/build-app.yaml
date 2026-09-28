@@ -22,7 +22,7 @@ on:
   workflow_call:
     inputs:
       app:
-        description: "Path to the app folder, e.g. starter_app"
+        description: "Path to the app folder, e.g. doh"
         required: true
         type: string
       publish:

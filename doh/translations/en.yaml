@@ -1,0 +1,30 @@
+configuration:
+  upstreams:
+    name: Upstream DoH endpoints
+    description: >-
+      Comma-separated HTTPS URLs used to resolve DNS queries. At least
+      one endpoint is required.
+  bootstrap:
+    name: Bootstrap DNS servers
+    description: >-
+      Comma-separated DNS server addresses, including ports, used to
+      resolve upstream endpoint hostnames before the proxy is available.
+  upstream_mode:
+    name: Upstream mode
+    description: >-
+      Select whether queries use load balancing, parallel requests, or
+      the fastest responding address.
+  timeout:
+    name: Upstream timeout
+    description: >-
+      Maximum time to wait for an upstream response, for example 10s or
+      500ms.
+  cache:
+    name: Enable DNS cache
+    description: Cache upstream responses to reduce latency and queries.
+  cache_size:
+    name: DNS cache size
+    description: Maximum cache size in bytes when DNS caching is enabled.
+  verbose:
+    name: Verbose logging
+    description: Enable detailed DNSProxy logging for troubleshooting.
