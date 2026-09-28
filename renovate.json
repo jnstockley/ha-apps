@@ -15,9 +15,10 @@
         "doh/Dockerfile"
       ],
       "matchPackageNames": [
+        "golang",
         "/^(?:docker\\.io\\/)?adguard\\/dnsproxy$/"
       ],
-      "groupName": "DNSProxy",
+      "groupName": "DoH image dependencies",
       "labels": [
         "dependencies",
         "doh"
