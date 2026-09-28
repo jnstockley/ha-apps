@@ -1,0 +1,18 @@
+# Editors / OS
+.DS_Store
+Thumbs.db
+*.swp
+
+# Python (if you extend server.py or add tooling scripts)
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Local app testing artifacts
+*.log
+
+# Devcontainer local overrides
+.devcontainer/docker-compose.override.yml
+
+.idea/

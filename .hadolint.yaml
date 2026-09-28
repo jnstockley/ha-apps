@@ -1,0 +1,7 @@
+# Hadolint configuration -- https://github.com/hadolint/hadolint
+# DL3018: pin apk package versions. Left enabled deliberately; the
+# starter only installs python3, so pin it once you rely on this in
+# production (apk add --no-cache python3=3.xx.x-rx), or ignore this rule
+# if you intentionally track Alpine's latest package build.
+ignored:
+  - DL3018

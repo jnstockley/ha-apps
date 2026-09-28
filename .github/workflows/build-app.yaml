@@ -1,0 +1,143 @@
+name: Build app
+
+# Reusable workflow: builds one app for every configured architecture,
+# publishes a multi-arch manifest to GHCR, and (on the default branch)
+# cuts a GitHub release. Uses the composite actions from
+# https://github.com/home-assistant/builder -- the maintained replacement
+# for the retired `home-assistant/builder@master` action. See
+# developers.home-assistant.io/blog/2026/04/02/builder-migration.
+#
+# To change target architectures, edit ARCHITECTURES below *and* the
+# `arch` list in the app's config.yaml so they stay in sync. Only
+# "amd64" and "aarch64" are supported by the current builder actions.
+#
+# Bump BUILDER_ACTIONS_VERSION when a new home-assistant/builder release
+# comes out: https://github.com/home-assistant/builder/releases
+
+env:
+  ARCHITECTURES: '["amd64", "aarch64"]'
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: "Path to the app folder, e.g. starter_app"
+        required: true
+        type: string
+      publish:
+        description: "Push images/manifest and cut a release"
+        required: true
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  init:
+    name: Read app info
+    runs-on: ubuntu-latest
+    outputs:
+      slug: ${{ steps.info.outputs.slug }}
+      version: ${{ steps.info.outputs.version }}
+      owner_lc: ${{ steps.info.outputs.owner_lc }}
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Read slug and version from config.yaml
+        id: info
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          slug=$(grep -m1 '^slug:' "${APP}/config.yaml" | sed -E 's/^slug:[[:space:]]*"?([^"[:space:]]+)"?.*/\1/')
+          version=$(grep -m1 '^version:' "${APP}/config.yaml" | sed -E 's/^version:[[:space:]]*"?([^"[:space:]]+)"?.*/\1/')
+          owner_lc=$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')
+
+          if [[ -z "${slug}" || -z "${version}" ]]; then
+            echo "::error::Could not read slug/version from ${APP}/config.yaml"
+            exit 1
+          fi
+
+          echo "slug=${slug}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+          echo "owner_lc=${owner_lc}" >> "$GITHUB_OUTPUT"
+
+      - name: Get build matrix
+        id: matrix
+        uses: home-assistant/builder/actions/prepare-multi-arch-matrix@2026.09.0
+        with:
+          architectures: ${{ env.ARCHITECTURES }}
+          image-name: ${{ steps.info.outputs.slug }}
+          registry-prefix: ghcr.io/${{ steps.info.outputs.owner_lc }}
+
+  build:
+    name: Build ${{ matrix.arch }}
+    needs: init
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+      id-token: write # Cosign needs to mint an OIDC token to sign images
+      packages: write # Push per-arch images to GHCR
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.init.outputs.matrix) }}
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v7
+
+      - name: Build image
+        uses: home-assistant/builder/actions/build-image@2026.09.0
+        with:
+          arch: ${{ matrix.arch }}
+          context: ${{ inputs.app }}
+          image: ${{ matrix.image }}
+          image-tags: |
+            ${{ needs.init.outputs.version }}
+            latest
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+          push: ${{ inputs.publish }}
+          version: ${{ needs.init.outputs.version }}
+
+  manifest:
+    name: Publish multi-arch manifest
+    if: inputs.publish
+    needs: [init, build]
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write # Cosign needs to mint an OIDC token to sign the manifest
+      packages: write # Push the manifest to GHCR
+    steps:
+      - name: Publish multi-arch manifest
+        uses: home-assistant/builder/actions/publish-multi-arch-manifest@2026.09.0
+        with:
+          architectures: ${{ env.ARCHITECTURES }}
+          image-name: ${{ needs.init.outputs.slug }}
+          registry-prefix: ghcr.io/${{ needs.init.outputs.owner_lc }}
+          image-tags: |
+            ${{ needs.init.outputs.version }}
+            latest
+          container-registry-password: ${{ secrets.GITHUB_TOKEN }}
+
+  release:
+    name: Create GitHub release
+    if: inputs.publish
+    needs: [init, manifest]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Create the release
+    steps:
+      - name: Create release if the version is new
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.app }}-v${{ needs.init.outputs.version }}
+        run: |
+          if gh release view "${TAG}" --repo "${{ github.repository }}" >/dev/null 2>&1; then
+            echo "Release ${TAG} already exists, skipping."
+          else
+            gh release create "${TAG}" \
+              --repo "${{ github.repository }}" \
+              --title "${{ inputs.app }} ${{ needs.init.outputs.version }}" \
+              --notes "Automated release for \`${{ inputs.app }}\` version ${{ needs.init.outputs.version }}. See ${{ inputs.app }}/CHANGELOG.md for details." \
+              --target "${{ github.sha }}"
+          fi

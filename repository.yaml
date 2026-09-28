@@ -1,0 +1,5 @@
+# Identifies this repository to the Home Assistant Supervisor.
+# https://developers.home-assistant.io/docs/apps/repository
+name: "Starter App Repository"
+url: "https://github.com/jnstockley/ha-apps"
+maintainer: "Jack Stockley <jack@jstockley.com>"

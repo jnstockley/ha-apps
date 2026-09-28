@@ -1,0 +1,21 @@
+configuration:
+  upstreams:
+    name: Upstream DoH endpoints
+    description: >-
+      Comma-separated HTTPS URLs used to resolve DNS queries. At least
+      one endpoint is required.
+  bootstrap:
+    name: Bootstrap DoH endpoints
+    description: >-
+      Comma-separated HTTPS URLs used to resolve the upstream endpoint
+      hostnames before the DNS proxy is available.
+  max_upstream_conns:
+    name: Maximum upstream connections
+    description: >-
+      Maximum concurrent connections to each upstream. Set to 0 for no
+      limit.
+  metrics:
+    name: Metrics address
+    description: >-
+      Host and port for cloudflared metrics. The default binds metrics
+      only inside the add-on container.
