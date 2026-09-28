@@ -1,5 +1,5 @@
 name: "DNS over HTTPS"
-version: "3.0.1"
+version: "3.0.2"
 slug: "doh"
 description: "A local DNS server that forwards queries to configurable DNS-over-HTTPS upstreams."
 url: "https://github.com/jnstockley/ha-apps"
