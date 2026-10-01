@@ -4,7 +4,7 @@ WORKDIR /src
 COPY entrypoint.go .
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /doh ./entrypoint.go
 
-FROM adguard/dnsproxy:v0.85.0
+FROM adguard/dnsproxy:v0.86.0
 
 ARG BUILD_ARCH
 ARG BUILD_VERSION="0.0.0-dev"
