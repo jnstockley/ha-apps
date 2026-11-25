@@ -3,6 +3,13 @@
 All notable changes to this app are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [3.0.5] - 2026-11-25
+
+### Changed
+
+- Merge pull request #6 from jnstockley/renovate/doh-image-dependencies (`5f0fb14`)
+- Update adguard/dnsproxy Docker tag to v0.86.0 (`420feae`)
+
 ## [3.0.4] - 2026-09-29
 
 ### Changed
